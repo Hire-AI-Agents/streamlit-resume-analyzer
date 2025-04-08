@@ -11,7 +11,23 @@ import json
 import re
 import time
 import argparse
-import PyPDF2
+# Try different imports for PyPDF2 to handle case sensitivity issues
+try:
+    import PyPDF2
+except ImportError:
+    try:
+        import pypdf2 as PyPDF2
+    except ImportError:
+        try:
+            from pypdf import PdfReader
+            # Create compatibility layer
+            class PyPDF2:
+                class PdfReader(PdfReader):
+                    pass
+        except ImportError:
+            print("Error: Could not import PDF processing library. Please install PyPDF2 or pypdf.")
+            sys.exit(1)
+            
 import tqdm
 import json5
 from termcolor import colored
