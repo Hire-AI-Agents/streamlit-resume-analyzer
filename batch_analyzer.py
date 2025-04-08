@@ -15,6 +15,10 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Create necessary directories
+os.makedirs("src/resumes", exist_ok=True)
+os.makedirs("results", exist_ok=True)
+
 # Custom CSS for styling
 st.markdown("""
 <style>
