@@ -56,9 +56,26 @@ try:
 except ImportError:
     anthropic_installed = False
 
+# Check for Streamlit
+try:
+    import streamlit as st
+    streamlit_available = True
+except ImportError:
+    streamlit_available = False
+
 # Environment variables for API keys
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
+
+# If using Streamlit and keys are in secrets, use them
+if streamlit_available:
+    try:
+        if 'openai_api_key' in st.secrets:
+            OPENAI_API_KEY = st.secrets['openai_api_key']
+        if 'anthropic_api_key' in st.secrets:
+            ANTHROPIC_API_KEY = st.secrets['anthropic_api_key']
+    except:
+        pass
 
 # Model configurations
 ANTHROPIC_MODEL = os.environ.get('ANTHROPIC_MODEL', 'claude-3-5-sonnet-20240620')
@@ -141,16 +158,29 @@ class ResumeJobMatcher:
         }
         
         # Setup AI client based on model selection
-        self._setup_ai_client()
+        try:
+            self._setup_ai_client()
+        except Exception as e:
+            error_msg = f"Error setting up AI client: {str(e)}"
+            print(colored(error_msg, "red"))
+            if streamlit_available:
+                st.error(error_msg)
+            raise
     
     def _setup_ai_client(self):
         """Set up the AI client based on the model selection."""
         if self.model.startswith("openai"):
             if not openai_installed:
-                print(colored("Error: OpenAI package not installed. Run: pip install openai", "red"))
+                error_msg = "Error: OpenAI package not installed. Run: pip install openai"
+                print(colored(error_msg, "red"))
+                if streamlit_available:
+                    st.error(error_msg)
                 sys.exit(1)
             if not OPENAI_API_KEY:
-                print(colored("Error: OpenAI API key not found. Set OPENAI_API_KEY environment variable.", "red"))
+                error_msg = "Error: OpenAI API key not found. Set OPENAI_API_KEY environment variable or add to Streamlit secrets."
+                print(colored(error_msg, "red"))
+                if streamlit_available:
+                    st.error(error_msg)
                 sys.exit(1)
                 
             self.client = openai.OpenAI(api_key=OPENAI_API_KEY)
@@ -165,17 +195,26 @@ class ResumeJobMatcher:
                 
         elif self.model == "anthropic":
             if not anthropic_installed:
-                print(colored("Error: Anthropic package not installed. Run: pip install anthropic", "red"))
+                error_msg = "Error: Anthropic package not installed. Run: pip install anthropic"
+                print(colored(error_msg, "red"))
+                if streamlit_available:
+                    st.error(error_msg)
                 sys.exit(1)
             if not ANTHROPIC_API_KEY:
-                print(colored("Error: Anthropic API key not found. Set ANTHROPIC_API_KEY environment variable.", "red"))
+                error_msg = "Error: Anthropic API key not found. Set ANTHROPIC_API_KEY environment variable or add to Streamlit secrets."
+                print(colored(error_msg, "red"))
+                if streamlit_available:
+                    st.error(error_msg)
                 sys.exit(1)
                 
             self.client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
             self.model_name = ANTHROPIC_MODEL
             print(colored(f"Using Anthropic model: {self.model_name}", "blue"))
         else:
-            print(colored(f"Error: Unknown model {self.model}. Use 'openai', 'openai-fast', or 'anthropic'.", "red"))
+            error_msg = f"Error: Unknown model {self.model}. Use 'openai', 'openai-fast', or 'anthropic'."
+            print(colored(error_msg, "red"))
+            if streamlit_available:
+                st.error(error_msg)
             sys.exit(1)
     
     def extract_text_from_pdf(self, pdf_path):
